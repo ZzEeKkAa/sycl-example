@@ -1,0 +1,1 @@
+Just a github actions tester for sycl compilation bug for https://github.com/IntelPython/dpbench

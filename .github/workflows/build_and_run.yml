@@ -1,0 +1,118 @@
+# SPDX-FileCopyrightText: 2022 - 2023 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: build and run
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    name: Build and run
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: cmd /C CALL {0}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        vc_version: ["14.16", "14.35", "14.37"]
+        example: ["python", "cpp", "scikit-build", "icx"]
+        # intel_llvm: ["patch", "original"]
+        intel_llvm: ["original"]
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.6.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout dpbench
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: '3.9'
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          activate-environment: "build"
+          channel-priority: "disabled"
+          environment-file: environments/conda-win-sycl.yml
+          run-post: false
+
+      - name: Patch IntelLLVM cmake
+        if: matrix.intel_llvm == 'patch'
+        shell: pwsh
+        run: |
+          $env:PATCHED_CMAKE_VERSION="3.26"
+          $env:PLATFORM_DIR="${env:CONDA_PREFIX}\Library\share\cmake-${env:PATCHED_CMAKE_VERSION}\Modules\Platform"
+          $env:FN="Windows-IntelLLVM.cmake"
+          Copy-Item ".github\workflows\Windows-IntelLLVM_${env:PATCHED_CMAKE_VERSION}.cmake" "${env:PLATFORM_DIR}\${env:FN}"
+      
+      # - uses: ilammy/msvc-dev-cmd@v1
+      #   with:
+      #     toolset: 14.35
+      
+      # - name: Set VC environment
+      #   if: runner.os == 'Windows' && matrix.sycl == 'sycl'
+      #   run: |
+      #     set PATH="%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\"
+      #     call vcvarsall.bat -vcvars_ver=14.35
+      #     set "LIB=%CONDA_PREFIX%\Library\lib;%CONDA_PREFIX%\compiler\lib;%LIB%"
+      #     set "INCLUDE=%CONDA_PREFIX%\include;%INCLUDE%"
+
+      # - name: Configure MSBuild
+      #   if: runner.os == 'Windows'
+      #   uses: microsoft/setup-msbuild@v1.3
+      #   with:
+      #     # https://www.intel.com/content/www/us/en/developer/articles/reference-implementation/intel-compilers-compatibility-with-microsoft-visual-studio-and-xcode.html
+      #     # https://github.com/actions/runner-images/blob/main/images/win/Windows2022-Readme.md
+      #     vs-version: '[17.0,17.6.4]'
+
+      - name: Build
+        if: matrix.example == 'cpp'
+        run: |
+          CALL "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=${{matrix.vc_version}}
+          set "LIB=%CONDA_PREFIX%\Library\lib;%CONDA_PREFIX%\compiler\lib;%LIB%"
+          set "INCLUDE=%CONDA_PREFIX%\include;%INCLUDE%"
+          cd cpp
+          cmake -B build -G Ninja -DCMAKE_C_COMPILER:PATH=icx -DCMAKE_CXX_COMPILER:PATH=icx .
+          cd build
+          ninja
+
+      - name: Build python
+        if: matrix.example == 'python'
+        run: |
+          CALL "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=${{matrix.vc_version}}
+          set "LIB=%CONDA_PREFIX%\Library\lib;%CONDA_PREFIX%\compiler\lib;%LIB%"
+          set "INCLUDE=%CONDA_PREFIX%\include;%INCLUDE%"
+          cd python
+          cmake -B build -G Ninja -DCMAKE_C_COMPILER:PATH=icx -DCMAKE_CXX_COMPILER:PATH=icx .
+          cd build
+          ninja
+
+      - name: Build python
+        if: matrix.example == 'scikit-build'
+        run: |
+          CALL "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=${{matrix.vc_version}}
+          set "LIB=%CONDA_PREFIX%\Library\lib;%CONDA_PREFIX%\compiler\lib;%LIB%"
+          set "INCLUDE=%CONDA_PREFIX%\include;%INCLUDE%"
+          cd python
+          python setup.py develop -G Ninja -- -DCMAKE_C_COMPILER:PATH=icx -DCMAKE_CXX_COMPILER:PATH=icx .
+      
+      - name: Build python
+        if: matrix.example == 'icx'
+        run: |
+          CALL "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" -vcvars_ver=${{matrix.vc_version}}
+          set "LIB=%CONDA_PREFIX%\Library\lib;%CONDA_PREFIX%\compiler\lib;%LIB%"
+          set "INCLUDE=%CONDA_PREFIX%\include;%INCLUDE%"
+          cd python
+          C:\Miniconda3\envs\build\Library\bin\icx.exe  /nologo /TP -D_hello_EXPORTS -IC:\Miniconda3\envs\build\Library\include -IC:\Miniconda3\envs\build\Include /DWIN32 /D_WINDOWS /EHsc /O2 /Ob2 /DNDEBUG -MD -v -fsycl /EHsc -QMD -QMT _hello.cxx.obj -QMF _hello.cxx.obj.d /Fo_hello.cxx.obj /Fd\ -c D:\a\sycl-example\sycl-example\python\hello\_hello.cxx

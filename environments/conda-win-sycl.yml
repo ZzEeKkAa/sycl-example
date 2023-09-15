@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2022 - 2023 Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: dpbench-dev
+channels:
+  - conda-forge
+  - intel
+  - nodefaults
+dependencies:
+  - conda-forge::dpcpp_win-64==2023.2.0
+  - cmake==3.26
+  - scikit-build
