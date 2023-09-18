@@ -1,0 +1,3 @@
+/python/_skbuild
+*.egg-info
+*.pyd

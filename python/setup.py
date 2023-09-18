@@ -1,4 +1,8 @@
 from skbuild import setup
+from skbuild.platform_specifics import windows
+
+# monkey patch compiler settings, so scikit build does not overwrite environment
+windows._get_msvc_compiler_env = lambda version, toolset: windows.CachedEnv()
 
 setup(
     name="hello-cpp",

@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: setup",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/python",
+            "program": "setup.py",
+            "args": ["develop","-G","Ninja"],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "CC": "icx",
+                "CXX": "icx"
+            }
+        }
+    ]
+}

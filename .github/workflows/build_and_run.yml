@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        vc_version: ["14.16", "14.35", "14.37"]
+        vc_version: ["14.16", "14.2", "14.35", "14.37"]
         example: ["python", "cpp", "scikit-build", "icx"]
         # intel_llvm: ["patch", "original"]
         intel_llvm: ["original"]
